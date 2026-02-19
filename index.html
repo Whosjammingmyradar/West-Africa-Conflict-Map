@@ -110,19 +110,19 @@ input[type=text]::placeholder{color:#3a4a3d}
   <div class="ss">
     <div class="sl2">Event Type</div>
     <div class="pills">
-      <span class="pill" style="background:#1A3A5C;color:#a8d4f5" data-t="Battle">Battle</span>
-      <span class="pill" style="background:#1B3A6B;color:#bdd7f5" data-t="Explosion">Explosion</span>
-      <span class="pill" style="background:#1A3D3A;color:#7ffff0" data-t="Drone">Drone Strike</span>
-      <span class="pill" style="background:#1A2E3D;color:#a0d4ff" data-t="FPVDrone">FPV Drone</span>
-      <span class="pill" style="background:#3D2000;color:#ffb347" data-t="IED">IED</span>
-      <span class="pill" style="background:#5C1A1A;color:#ffd5d5" data-t="Violence">Civilians</span>
-      <span class="pill" style="background:#6B2D00;color:#ffd9b3" data-t="Kidnap">Kidnap</span>
-      <span class="pill" style="background:#4D2600;color:#ffac5c" data-t="Fuel">Fuel/Supply</span>
-      <span class="pill" style="background:#4A3800;color:#ffe566" data-t="Coup">Political</span>
-      <span class="pill" style="background:#4A3000;color:#ffe4a0" data-t="Displace">Displaced</span>
-      <span class="pill" style="background:#2E2A00;color:#ffe57f" data-t="Gold">Resources</span>
-      <span class="pill" style="background:#0F3D2E;color:#7fffd4" data-t="Arms">Arms</span>
-      <span class="pill" style="background:#3D2B1F;color:#f5c8a0" data-t="School">School/GBV</span>
+      <span class="pill" style="background:#1a3320;color:#7fffd4" data-t="Battle">Battle</span>
+      <span class="pill" style="background:#1a3320;color:#7fffd4" data-t="Explosion">Explosion</span>
+      <span class="pill" style="background:#1a3320;color:#7fffd4" data-t="Drone">Drone Strike</span>
+      <span class="pill" style="background:#1a3320;color:#7fffd4" data-t="FPVDrone">FPV Drone</span>
+      <span class="pill" style="background:#1a3320;color:#7fffd4" data-t="IED">IED</span>
+      <span class="pill" style="background:#1a3320;color:#7fffd4" data-t="Violence">Civilians</span>
+      <span class="pill" style="background:#1a3320;color:#7fffd4" data-t="Kidnap">Kidnap</span>
+      <span class="pill" style="background:#1a3320;color:#7fffd4" data-t="Fuel">Fuel/Supply</span>
+      <span class="pill" style="background:#1a3320;color:#7fffd4" data-t="Coup">Political</span>
+      <span class="pill" style="background:#1a3320;color:#7fffd4" data-t="Displace">Displaced</span>
+      <span class="pill" style="background:#1a3320;color:#7fffd4" data-t="Gold">Resources</span>
+      <span class="pill" style="background:#1a3320;color:#7fffd4" data-t="Arms">Arms</span>
+      <span class="pill" style="background:#1a3320;color:#7fffd4" data-t="School">School/GBV</span>
     </div>
   </div>
   <div class="ss">
@@ -133,6 +133,7 @@ input[type=text]::placeholder{color:#3a4a3d}
   </div>
   <div class="ss">
     <div class="sl2">Map Layers</div>
+    <div class="lr"><input type="checkbox" id="l-satellite"><div class="lsw" style="background:linear-gradient(135deg,#2a4a2a,#4a6a3a,#6a8a5a);border-radius:2px"></div><label for="l-satellite">Satellite imagery</label></div>
     <div class="lr"><input type="checkbox" id="l-borders" checked><div class="lsw" style="background:#3a7048"></div><label for="l-borders">Country borders</label></div>
     <div class="lr"><input type="checkbox" id="l-rivers" checked><div class="lsw" style="background:#1a5a9a"></div><label for="l-rivers">Rivers</label></div>
     <div class="lr"><input type="checkbox" id="l-lakes" checked><div class="lsw" style="background:#1a3a6a;border-radius:50%"></div><label for="l-lakes">Lakes</label></div>
@@ -203,9 +204,12 @@ function tg(t){return TMAP[t]||'Other';}
 
 // MAP
 const map=L.map('map',{center:[14,-2],zoom:6,preferCanvas:true});
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png',{
-  attribution:'© OpenStreetMap © CARTO',subdomains:'abcd',maxZoom:19
+const tileBase = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png',{
+  attribution:'\u00a9 OpenStreetMap \u00a9 CARTO',subdomains:'abcd',maxZoom:19
 }).addTo(map);
+const tileSat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{
+  attribution:'\u00a9 Esri, Maxar, Earthstar Geographics',maxZoom:19
+});
 
 const gBorders=L.layerGroup().addTo(map),gRivers=L.layerGroup().addTo(map),
       gLakes=L.layerGroup().addTo(map),gCapitals=L.layerGroup().addTo(map),
@@ -288,6 +292,11 @@ CITIES.forEach(c=>{
 
 // LAYER TOGGLES
 [['l-borders',gBorders],['l-rivers',gRivers],['l-lakes',gLakes],['l-roads-hwy',gRoadsHwy],['l-roads-nat',gRoadsNat],['l-capitals',gCapitals],['l-cities',gCities],['l-cnames',gCountryNames],['l-airports',gAirports]]
+  // Satellite toggle — swaps base tile layer
+  document.getElementById('l-satellite').addEventListener('change',e=>{
+    if(e.target.checked){map.addLayer(tileSat);tileSat.bringToBack();} 
+    else map.removeLayer(tileSat);
+  });
   .forEach(([id,g])=>document.getElementById(id).addEventListener('change',e=>e.target.checked?map.addLayer(g):map.removeLayer(g)));
 
 // DATE SLIDER
