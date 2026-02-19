@@ -171,7 +171,7 @@ const GEO={"countries": {"Mali": {"color": "#162a1e", "border": "#3a7048", "weig
 const ACOLOR={JNIM:'#8B0000',ISSP:'#2C3E50',ISWAP:'#1A252F',FLM:'#A50000',FAMa:'#D2691E',CorpsVDP:'#B84A00',US:'#FFD700',Other:'#445544'};
 const TCOLOR={Battle:'#1A3A5C',Explosion:'#1B3A6B',Violence:'#5C1A1A',Kidnap:'#6B2D00',Fuel:'#4D2600',Coup:'#4A3800',Displace:'#4A3000',Gold:'#2E2A00',Arms:'#0F3D2E',School:'#3D2B1F'};
 const TTXT={Battle:'#a8d4f5',Explosion:'#bdd7f5',Violence:'#ffd5d5',Kidnap:'#ffd9b3',Fuel:'#ffac5c',Coup:'#ffe566',Displace:'#ffe4a0',Gold:'#ffe57f',Arms:'#7fffd4',School:'#f5c8a0'};
-const TMAP={'Battle':'Battle','Explosion/Remote Violence':'Explosion','FPV Drone Strike':'Explosion','Drone Strike':'Explosion','Airstrike':'Explosion','Violence Against Civilians':'Violence','Sexual Violence / GBV':'School','Kidnapping / Hostage-Taking':'Kidnap','Fuel/Supply Smuggling':'Fuel','School / Clinic Closure':'School','Coup / Political Instability':'Coup','Disinformation / Influence Op':'Coup','Displacement Event':'Displace','Gold & Resource Smuggling':'Gold','Cattle Rustling':'Gold','Drug & Human Trafficking':'Arms','Arms Smuggling':'Arms','Weapons Seizure':'Arms'};
+const TMAP={'Battle':'Battle','Explosion/Remote Violence':'Explosion','FPV Drone Strike':'Drone','Drone Strike':'Drone','Airstrike':'Explosion','Violence Against Civilians':'Violence','Sexual Violence / GBV':'GBV','Kidnapping / Hostage-Taking':'Kidnap','Fuel/Supply Smuggling':'Fuel','School / Clinic Closure':'School','Coup / Political Instability':'Coup','Disinformation / Influence Op':'Disinfo','Displacement Event':'Displace','Gold & Resource Smuggling':'Gold','Cattle Rustling':'Cattle','Drug & Human Trafficking':'Trafficking','Arms Smuggling':'Arms','Weapons Seizure':'Arms'};
 
 function ag(a){
   if(!a)return'Other';const u=a.toUpperCase();
@@ -307,12 +307,131 @@ document.querySelectorAll('[data-t]').forEach(p=>p.addEventListener('click',()=>
 document.getElementById('search').addEventListener('input',e=>{searchQ=e.target.value.toLowerCase();applyFilters();});
 
 // MARKERS
+// SVG symbol paths — all drawn in a 1x1 unit space, centered at 0.5,0.5
+// Scaled to size s at render time. Color = actor color.
+function symPath(type, c, s) {
+  const h = s/2; // center
+  const t = (v) => (h + v*s).toFixed(2); // translate relative to center
+  switch(type) {
+    case 'Battle': // crossed swords
+      return `<line x1="${t(-.32)}" y1="${t(-.32)}" x2="${t(.32)}" y2="${t(.32)}" stroke="${c}" stroke-width="${(s*.13).toFixed(1)}" stroke-linecap="round"/>
+              <line x1="${t(.32)}" y1="${t(-.32)}" x2="${t(-.32)}" y2="${t(.32)}" stroke="${c}" stroke-width="${(s*.13).toFixed(1)}" stroke-linecap="round"/>
+              <polygon points="${t(.25)},${t(-.38)} ${t(.38)},${t(-.25)} ${t(.12)},${t(-.12)}" fill="${c}"/>
+              <polygon points="${t(-.25)},${t(.38)} ${t(-.38)},${t(.25)} ${t(-.12)},${t(.12)}" fill="${c}"/>`;
+    case 'Explosion': // starburst 8-point
+    case 'Drone': {
+      if(type==='Drone') {
+        // crosshair
+        return `<circle cx="${h}" cy="${h}" r="${(s*.26).toFixed(1)}" fill="none" stroke="${c}" stroke-width="${(s*.1).toFixed(1)}"/>
+                <circle cx="${h}" cy="${h}" r="${(s*.06).toFixed(1)}" fill="${c}"/>
+                <line x1="${t(-.45)}" y1="${h}" x2="${t(-.28)}" y2="${h}" stroke="${c}" stroke-width="${(s*.09).toFixed(1)}" stroke-linecap="round"/>
+                <line x1="${t(.28)}" y1="${h}" x2="${t(.45)}" y2="${h}" stroke="${c}" stroke-width="${(s*.09).toFixed(1)}" stroke-linecap="round"/>
+                <line x1="${h}" y1="${t(-.45)}" x2="${h}" y2="${t(-.28)}" stroke="${c}" stroke-width="${(s*.09).toFixed(1)}" stroke-linecap="round"/>
+                <line x1="${h}" y1="${t(.28)}" x2="${h}" y2="${t(.45)}" stroke="${c}" stroke-width="${(s*.09).toFixed(1)}" stroke-linecap="round"/>`;
+      }
+      // starburst for explosion
+      const pts=8,r1=s*.38,r2=s*.18;
+      let d='';
+      for(let i=0;i<pts*2;i++){const r=i%2===0?r1:r2;const a=i*Math.PI/pts-Math.PI/2;d+=(i===0?'M':'L')+(h+r*Math.cos(a)).toFixed(2)+','+(h+r*Math.sin(a)).toFixed(2);}
+      return `<path d="${d}Z" fill="${c}"/>`;
+    }
+    case 'Violence': // skull
+      return `<ellipse cx="${h}" cy="${t(-.06)}" rx="${(s*.28).toFixed(1)}" ry="${(s*.27).toFixed(1)}" fill="${c}"/>
+              <rect x="${t(-.17)}" y="${t(.16)}" width="${(s*.34).toFixed(1)}" height="${(s*.13).toFixed(1)}" rx="${(s*.04).toFixed(1)}" fill="${c}"/>
+              <circle cx="${t(-.11)}" cy="${t(-.08)}" r="${(s*.08).toFixed(1)}" fill="#0a0c0b"/>
+              <circle cx="${t(.11)}" cy="${t(-.08)}" r="${(s*.08).toFixed(1)}" fill="#0a0c0b"/>
+              <line x1="${t(-.04)}" y1="${t(.17)}" x2="${t(-.04)}" y2="${t(.27)}" stroke="#0a0c0b" stroke-width="${(s*.06).toFixed(1)}"/>
+              <line x1="${t(.04)}" y1="${t(.17)}" x2="${t(.04)}" y2="${t(.27)}" stroke="#0a0c0b" stroke-width="${(s*.06).toFixed(1)}"/>`;
+    case 'Kidnap': // shackle/chain
+      return `<circle cx="${t(-.13)}" cy="${t(-.08)}" r="${(s*.16).toFixed(1)}" fill="none" stroke="${c}" stroke-width="${(s*.1).toFixed(1)}"/>
+              <circle cx="${t(.13)}" cy="${t(.08)}" r="${(s*.16).toFixed(1)}" fill="none" stroke="${c}" stroke-width="${(s*.1).toFixed(1)}"/>
+              <line x1="${t(-.02)}" y1="${t(-.04)}" x2="${t(.02)}" y2="${t(.04)}" stroke="${c}" stroke-width="${(s*.1).toFixed(1)}" stroke-linecap="round"/>`;
+    case 'GBV': // broken circle + X
+      return `<path d="M${t(.3)},${h} A${(s*.3).toFixed(1)},${(s*.3).toFixed(1)} 0 1 1 ${t(.28)},${t(-.14)}" fill="none" stroke="${c}" stroke-width="${(s*.1).toFixed(1)}" stroke-linecap="round"/>
+              <line x1="${t(-.18)}" y1="${t(-.18)}" x2="${t(.18)}" y2="${t(.18)}" stroke="${c}" stroke-width="${(s*.1).toFixed(1)}" stroke-linecap="round"/>
+              <line x1="${t(.18)}" y1="${t(-.18)}" x2="${t(-.18)}" y2="${t(.18)}" stroke="${c}" stroke-width="${(s*.1).toFixed(1)}" stroke-linecap="round"/>`;
+    case 'School': // building + X on roof
+      return `<rect x="${t(-.27)}" y="${t(-.04)}" width="${(s*.54).toFixed(1)}" height="${(s*.32).toFixed(1)}" rx="${(s*.04).toFixed(1)}" fill="${c}"/>
+              <polygon points="${h},${t(-.38)} ${t(-.3)},${t(-.04)} ${t(.3)},${t(-.04)}" fill="${c}"/>
+              <rect x="${t(-.08)}" y="${t(.06)}" width="${(s*.16).toFixed(1)}" height="${(s*.2).toFixed(1)}" rx="${(s*.02).toFixed(1)}" fill="#0a0c0b"/>
+              <line x1="${t(-.18)}" y1="${t(-.3)}" x2="${t(-.06)}" y2="${t(-.16)}" stroke="#0a0c0b" stroke-width="${(s*.09).toFixed(1)}" stroke-linecap="round"/>
+              <line x1="${t(-.06)}" y1="${t(-.3)}" x2="${t(-.18)}" y2="${t(-.16)}" stroke="#0a0c0b" stroke-width="${(s*.09).toFixed(1)}" stroke-linecap="round"/>`;
+    case 'Coup': // fist
+      return `<rect x="${t(-.22)}" y="${t(-.22)}" width="${(s*.44).toFixed(1)}" height="${(s*.26).toFixed(1)}" rx="${(s*.06).toFixed(1)}" fill="${c}"/>
+              <rect x="${t(-.22)}" y="${t(.02)}" width="${(s*.15).toFixed(1)}" height="${(s*.2).toFixed(1)}" rx="${(s*.04).toFixed(1)}" fill="${c}"/>
+              <rect x="${t(-.05)}" y="${t(.04)}" width="${(s*.14).toFixed(1)}" height="${(s*.18).toFixed(1)}" rx="${(s*.04).toFixed(1)}" fill="${c}"/>
+              <rect x="${t(.11)}" y="${t(.02)}" width="${(s*.12).toFixed(1)}" height="${(s*.16).toFixed(1)}" rx="${(s*.04).toFixed(1)}" fill="${c}"/>
+              <rect x="${t(-.3)}" y="${t(-.3)}" width="${(s*.12).toFixed(1)}" height="${(s*.16).toFixed(1)}" rx="${(s*.04).toFixed(1)}" fill="${c}"/>`;
+    case 'Disinfo': // broadcast waves
+      return `<circle cx="${h}" cy="${t(.12)}" r="${(s*.07).toFixed(1)}" fill="${c}"/>
+              <path d="M${t(-.18)},${t(.3)} A${(s*.22).toFixed(1)},${(s*.22).toFixed(1)} 0 0 1 ${t(.18)},${t(.3)}" fill="none" stroke="${c}" stroke-width="${(s*.09).toFixed(1)}" stroke-linecap="round"/>
+              <path d="M${t(-.3)},${t(.16)} A${(s*.34).toFixed(1)},${(s*.34).toFixed(1)} 0 0 1 ${t(.3)},${t(.16)}" fill="none" stroke="${c}" stroke-width="${(s*.08).toFixed(1)}" stroke-linecap="round"/>
+              <path d="M${t(-.42)},${t(.0)} A${(s*.44).toFixed(1)},${(s*.44).toFixed(1)} 0 0 1 ${t(.42)},${t(.0)}" fill="none" stroke="${c}" stroke-width="${(s*.07).toFixed(1)}" stroke-linecap="round" stroke-dasharray="${(s*.08).toFixed(1)},${(s*.06).toFixed(1)}"/>`;
+    case 'Displace': // person + arrow right
+      return `<circle cx="${t(-.12)}" cy="${t(-.3)}" r="${(s*.09).toFixed(1)}" fill="${c}"/>
+              <line x1="${t(-.12)}" y1="${t(-.21)}" x2="${t(-.12)}" y2="${t(.04)}" stroke="${c}" stroke-width="${(s*.1).toFixed(1)}" stroke-linecap="round"/>
+              <line x1="${t(-.12)}" y1="${t(-.1)}" x2="${t(-.28)}" y2="${t(.08)}" stroke="${c}" stroke-width="${(s*.09).toFixed(1)}" stroke-linecap="round"/>
+              <line x1="${t(-.12)}" y1="${t(-.1)}" x2="${t(.06)}" y2="${t(.06)}" stroke="${c}" stroke-width="${(s*.09).toFixed(1)}" stroke-linecap="round"/>
+              <line x1="${t(-.12)}" y1="${t(.04)}" x2="${t(-.22)}" y2="${t(.3)}" stroke="${c}" stroke-width="${(s*.09).toFixed(1)}" stroke-linecap="round"/>
+              <line x1="${t(-.12)}" y1="${t(.04)}" x2="${t(-.02)}" y2="${t(.3)}" stroke="${c}" stroke-width="${(s*.09).toFixed(1)}" stroke-linecap="round"/>
+              <polygon points="${t(.44)},${t(-.04)} ${t(.22)},${t(-.18)} ${t(.22)},${t(.1)}" fill="${c}"/>`;
+    case 'Fuel': // jerry can
+      return `<rect x="${t(-.22)}" y="${t(-.14)}" width="${(s*.42).toFixed(1)}" height="${(s*.42).toFixed(1)}" rx="${(s*.05).toFixed(1)}" fill="${c}"/>
+              <rect x="${t(-.04)}" y="${t(-.3)}" width="${(s*.18).toFixed(1)}" height="${(s*.18).toFixed(1)}" rx="${(s*.03).toFixed(1)}" fill="${c}"/>
+              <rect x="${t(.12)}" y="${t(-.24)}" width="${(s*.1).toFixed(1)}" height="${(s*.09).toFixed(1)}" rx="${(s*.02).toFixed(1)}" fill="${c}"/>
+              <rect x="${t(-.12)}" y="${t(.0)}" width="${(s*.14).toFixed(1)}" height="${(s*.16).toFixed(1)}" rx="${(s*.02).toFixed(1)}" fill="#0a0c0b" opacity=".45"/>`;
+    case 'Gold': // pickaxe
+      return `<line x1="${t(-.3)}" y1="${t(.3)}" x2="${t(.15)}" y2="${t(-.15)}" stroke="${c}" stroke-width="${(s*.1).toFixed(1)}" stroke-linecap="round"/>
+              <path d="M${t(.05)},${t(-.24)} Q${t(.42)},${t(-.44)} ${t(.34)},${t(-.08)} Q${t(.2)},${t(.02)} ${t(.06)},${t(-.06)}Z" fill="${c}"/>
+              <path d="M${t(-.07)},${t(-.07)} Q${t(-.22)},${t(-.32)} ${t(.04)},${t(-.24)} Q${t(.06)},${t(-.06)} ${t(-.01)},${t(.02)}Z" fill="${c}"/>`;
+    case 'Arms': // rifle
+      return `<g transform="rotate(-35,${h},${h})">
+                <rect x="${t(-.38)}" y="${t(-.07)}" width="${(s*.6).toFixed(1)}" height="${(s*.1).toFixed(1)}" rx="${(s*.03).toFixed(1)}" fill="${c}"/>
+                <rect x="${t(.14)}" y="${t(-.15)}" width="${(s*.08).toFixed(1)}" height="${(s*.09).toFixed(1)}" rx="${(s*.01).toFixed(1)}" fill="${c}"/>
+                <rect x="${t(-.38)}" y="${t(.03)}" width="${(s*.16).toFixed(1)}" height="${(s*.14).toFixed(1)}" rx="${(s*.03).toFixed(1)}" fill="${c}"/>
+                <line x1="${t(-.26)}" y1="${t(-.07)}" x2="${t(-.26)}" y2="${t(-.18)}" stroke="${c}" stroke-width="${(s*.07).toFixed(1)}" stroke-linecap="round"/>
+              </g>`;
+    case 'Cattle': // cow head with horns
+      return `<ellipse cx="${h}" cy="${t(.08)}" rx="${(s*.24).toFixed(1)}" ry="${(s*.2).toFixed(1)}" fill="${c}"/>
+              <path d="M${t(-.24)},${t(-.02)} Q${t(-.44)},${t(-.34)} ${t(-.28)},${t(-.3)} Q${t(-.18)},${t(-.28)} ${t(-.14)},${t(-.08)}" fill="${c}"/>
+              <path d="M${t(.24)},${t(-.02)} Q${t(.44)},${t(-.34)} ${t(.28)},${t(-.3)} Q${t(.18)},${t(-.28)} ${t(.14)},${t(-.08)}" fill="${c}"/>
+              <ellipse cx="${h}" cy="${t(.2)}" rx="${(s*.1).toFixed(1)}" ry="${(s*.07).toFixed(1)}" fill="#0a0c0b" opacity=".35"/>
+              <circle cx="${t(-.1)}" cy="${t(.06)}" r="${(s*.05).toFixed(1)}" fill="#0a0c0b" opacity=".35"/>
+              <circle cx="${t(.1)}" cy="${t(.06)}" r="${(s*.05).toFixed(1)}" fill="#0a0c0b" opacity=".35"/>`;
+    case 'Trafficking': // chain links
+      return `<g transform="rotate(-30,${h},${h})">
+                <rect x="${t(-.38)}" y="${t(-.1)}" width="${(s*.28).toFixed(1)}" height="${(s*.2).toFixed(1)}" rx="${(s*.1).toFixed(1)}" fill="none" stroke="${c}" stroke-width="${(s*.1).toFixed(1)}"/>
+                <rect x="${t(.1)}" y="${t(-.1)}" width="${(s*.28).toFixed(1)}" height="${(s*.2).toFixed(1)}" rx="${(s*.1).toFixed(1)}" fill="none" stroke="${c}" stroke-width="${(s*.1).toFixed(1)}"/>
+                <line x1="${t(-.1)}" y1="${h}" x2="${t(.1)}" y2="${h}" stroke="${c}" stroke-width="${(s*.1).toFixed(1)}" stroke-linecap="round"/>
+              </g>`;
+    default: // fallback: simple diamond
+      return `<polygon points="${h},${t(-.38)} ${t(.32)},${h} ${h},${t(.38)} ${t(-.32)},${h}" fill="${c}"/>`;
+  }
+}
+
+// Map type group → symbol key
+const SYM_TYPE = {
+  'Battle':'Battle','Explosion':'Explosion','Drone':'Drone',
+  'Violence':'Violence','Kidnap':'Kidnap','School':'School',
+  'Coup':'Coup','Disinfo':'Disinfo','Displace':'Displace',
+  'Fuel':'Fuel','Gold':'Gold','Arms':'Arms',
+  'Cattle':'Cattle','Trafficking':'Trafficking','GBV':'GBV'
+};
+
 function mkMarker(ev){
   if(!ev.lat||!ev.lng)return null;
-  const a=ag(ev.actor1),t=tg(ev.type),ac=ACOLOR[a]||'#445',tc=TCOLOR[t]||'#333';
-  const f=ev.fatalities||0,r=f>100?18:f>50?15:f>20?12:f>10?10:f>0?8:6,s=r*2+8,cx=s/2;
-  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}"><circle cx="${cx}" cy="${cx}" r="${r+3}" fill="${tc}" fill-opacity=".4" stroke="${tc}" stroke-width="1"/><circle cx="${cx}" cy="${cx}" r="${r}" fill="${ac}" fill-opacity=".9" stroke="rgba(255,255,255,.35)" stroke-width=".8"/>${f>10?`<text x="${cx}" y="${cx+4}" text-anchor="middle" font-size="${r<10?7:9}" font-family="system-ui" font-weight="800" fill="white">${f>999?Math.round(f/100)/10+'k':f}</text>`:''}</svg>`;
-  return L.marker([ev.lat,ev.lng],{icon:L.divIcon({html:svg,className:'',iconSize:[s,s],iconAnchor:[cx,cx]})})
+  const a=ag(ev.actor1),t=tg(ev.type);
+  const ac=ACOLOR[a]||'#aaa';
+  const f=ev.fatalities||0;
+  // Base size + fatality scaling
+  const s=f>100?44:f>50?38:f>20?32:f>10?26:f>0?22:18;
+  const sym=SYM_TYPE[t]||'default';
+  const inner=symPath(sym,ac,s);
+  // Drop shadow for readability on busy map
+  const shadow=`<filter id="ds"><feDropShadow dx="0" dy="1" stdDeviation="1.5" flood-color="#000" flood-opacity=".7"/></filter>`;
+  const svgStr=`<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" style="filter:drop-shadow(0 1px 2px rgba(0,0,0,.8))">${inner}</svg>`;
+  const icon=L.divIcon({html:svgStr,className:'',iconSize:[s,s],iconAnchor:[s/2,s/2]});
+  return L.marker([ev.lat,ev.lng],{icon})
     .bindPopup(`<div style="font-weight:700;font-size:13px;line-height:1.3;margin-bottom:3px">${ev.subtype||ev.type}</div><div style="font-size:10px;color:#7a8a7d;margin-bottom:3px">${ev.date} · ${ev.location||ev.country}</div><div style="font-size:11px;font-weight:600">${ev.actor1}${ev.actor2?' vs '+ev.actor2:''}</div>${f>0?`<div style="color:#ff4444;font-weight:800;font-size:13px;margin-top:3px">⚡ ${f} fatalities</div>`:''}<div style="font-size:10px;color:#00cc66;margin-top:5px">Click for full details →</div>`,{maxWidth:220})
     .on('click',()=>showDetail(ev));
 }
@@ -379,7 +498,17 @@ document.getElementById('d-close').addEventListener('click',()=>{
 const lgCtrl=L.control({position:'bottomright'});
 lgCtrl.onAdd=function(){
   const d=document.createElement('div');d.className='lgbox';
-  d.innerHTML=`<b>Actor (Dot Fill)</b><br>${Object.entries(ACOLOR).map(([k,c])=>`<div><span class="dot" style="background:${c};border:1px solid rgba(255,255,255,.15)"></span>${k}</div>`).join('')}<br><b>Event Type (Ring)</b><br>${Object.entries(TCOLOR).map(([k,c])=>`<div><span class="dot" style="background:${c}"></span>${k}</div>`).join('')}<br><b>Roads</b><br>
+  d.innerHTML=`<b>Actor (Dot Fill)</b><br>${Object.entries(ACOLOR).map(([k,c])=>`<div><span class="dot" style="background:${c};border:1px solid rgba(255,255,255,.15)"></span>${k}</div>`).join('')}<br><b>Event Type (Symbol)</b><br>
+    ${[
+      ['Battle','crossed swords'],['Explosion','starburst'],['Drone','crosshair'],
+      ['Violence','skull'],['Kidnap','chain'],['GBV','broken circle'],
+      ['School','building'],['Coup','fist'],['Disinfo','signal'],
+      ['Displace','person'],['Fuel','fuel can'],['Gold','pickaxe'],
+      ['Arms','rifle'],['Cattle','cow'],['Trafficking','chain links']
+    ].map(([k,lbl])=>`<div style="display:flex;align-items:center;gap:5px;margin-bottom:2px">
+      <svg width="14" height="14" style="flex-shrink:0">${symPath(k,'#a0b8aa',14)}</svg>
+      <span>${lbl}</span>
+    </div>`).join('')}<br><b>Roads</b><br>
     <div><span style="display:inline-block;width:18px;height:2px;background:#5a4a2a;vertical-align:middle;margin-right:4px"></span>Highway</div>
     <div><span style="display:inline-block;width:18px;height:2px;background:#7a5a1a;vertical-align:middle;margin-right:4px"></span>Strategic road ⚠</div>
     <div><span style="display:inline-block;width:18px;height:2px;background:#4a3a18;vertical-align:middle;margin-right:4px;border-top:1px dashed #4a3a18"></span>National road</div>
